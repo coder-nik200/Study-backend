@@ -42,7 +42,12 @@ const getSignup = async (req, res) => {
       expiresIn: "3d",
     });
 
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 3 * 24 * 60 * 60 * 1000,
+    });
 
     res.status(201).json({
       success: true,
@@ -84,8 +89,9 @@ const getLogin = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // true in production
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
+      maxAge: 3 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -109,7 +115,9 @@ const getLogin = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const token = req.cookies.token || req.header.authorization?.split(" ")[1];
+    const token =
+      req.cookies.token ||
+      req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       return res.status(400).json({
@@ -117,7 +125,11 @@ const logout = async (req, res) => {
       });
     }
 
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
 
     res.status(200).json({ success: true, message: "Logged out successfully" });
   } catch (error) {
