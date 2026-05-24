@@ -7,7 +7,7 @@ require("dotenv").config();
 
 const app = express();
 
-// Local modules
+// Routes
 const userRouter = require("./routes/userRoute");
 const taskRouter = require("./routes/taskRoute");
 const contactRouter = require("./routes/contactRoute");
@@ -23,18 +23,47 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
-// Body parsers
+// Parsers
 app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 
-// Routes
+// MongoDB connection
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+
+  try {
+    const db = await mongoose.connect(process.env.MONGO_URI);
+
+    isConnected = db.connections[0].readyState;
+
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.log("Mongo Error:", error);
+    throw error;
+  }
+};
+
+// DB middleware FIRST
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+    });
+  }
+});
+
+// Routes AFTER DB connection middleware
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });
@@ -49,29 +78,6 @@ app.use(notificationRouter);
 app.use(profileRouter);
 app.use(taskAssignmentRoute);
 
-// Static folder
 app.use("/uploads", express.static("uploads"));
 
-// MongoDB connection
-let isConnected = false;
-
-const connectDB = async () => {
-  if (isConnected) return;
-
-  try {
-    const db = await mongoose.connect(process.env.MONGO_URI);
-    isConnected = db.connections[0].readyState;
-    console.log("✅ MongoDB Connected");
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-// Middleware for DB connection
-app.use(async (req, res, next) => {
-  await connectDB();
-  next();
-});
-
-// Export app for Vercel
 module.exports = app;
