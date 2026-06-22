@@ -21,10 +21,33 @@ const taskAssignmentRoute = require("./routes/taskAssignmentRoute");
 // CORS
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "https://study-frontend-pi.vercel.app",
+      ];
+
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS blocked"));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+// app.use(
+//   cors({
+//     origin: [
+//       process.env.FRONTEND_URL,
+//       "https://study-frontend-pi.vercel.app",
+//     ],
+//     credentials: true,
+//   }),
+// );
 
 // Parsers
 app.use(express.json({ limit: "10mb" }));
